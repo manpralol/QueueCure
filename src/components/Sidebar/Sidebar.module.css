@@ -1,0 +1,258 @@
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s, border-color 0.3s;
+}
+
+.sidebar.collapsed {
+  width: 64px;
+}
+
+.sbHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 64px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sbLogo {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.2s;
+  letter-spacing: -0.2px;
+}
+
+.sidebar.collapsed .sbLogo {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+}
+
+.sbToggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.3s;
+}
+
+.sbToggle:hover {
+  background: var(--border);
+}
+
+.sidebar.collapsed .sbToggle {
+  transform: rotate(180deg);
+}
+
+.sbRole {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sbRolePill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.roleAv {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+
+.roleAv.doc { background: var(--doc-color); }
+.roleAv.rec { background: var(--rec-color); }
+.roleAv.pat { background: var(--pat-color); }
+
+.sbRoleInfo {
+  overflow: hidden;
+}
+
+.sbRoleName {
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.sbRoleType {
+  font-size: 0.67rem;
+  color: var(--text-light);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sidebar.collapsed .sbRoleInfo {
+  display: none;
+}
+
+.sbNav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0;
+  scrollbar-width: none;
+}
+
+.sbNav::-webkit-scrollbar {
+  display: none;
+}
+
+.sbSection {
+  padding: 10px 20px 4px;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.sidebar.collapsed .sbSection {
+  opacity: 0;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: background var(--tr), color var(--tr);
+  text-decoration: none;
+  color: var(--text-mid);
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 0.84rem;
+  position: relative;
+}
+
+.navItem:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.navItem.active {
+  color: var(--text);
+  background: var(--surface2);
+}
+
+.navItem.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+}
+
+.navItem.active.docNav::after { background: var(--doc-color); }
+.navItem.active.recNav::after { background: var(--rec-color); }
+.navItem.active.patNav::after { background: var(--pat-color); }
+
+.navItem svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.navLabel {
+  transition: opacity 0.2s;
+}
+
+.sidebar.collapsed .navLabel {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.navBadge {
+  margin-left: auto;
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.navBadge.green { background: var(--doc-color); }
+.navBadge.blue { background: var(--rec-color); }
+.navBadge.red { background: #c0392b; }
+
+.sidebar.collapsed .navBadge {
+  display: none;
+}
+
+.sbFooter {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sbExit {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  transition: color 0.2s;
+}
+
+.sbExit:hover {
+  color: var(--text);
+}
+
+.sbExit svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+}
+
+.sidebar.collapsed .sbExitLabel {
+  display: none;
+}

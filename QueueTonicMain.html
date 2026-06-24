@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>QueueTonic — Appointment Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" media="print" onload="this.media='all'"/>
+<noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/></noscript>
+<style>
+/* ═══════════════════════════════════════
+   TOKENS — from uploaded design
+═══════════════════════════════════════ */
+:root {
+  --black:#0d0d0d; --white:#ffffff; --off-white:#f8f7f5;
+  --gray-100:#f0efed; --gray-200:#e2e0dc; --gray-400:#b0aca5;
+  --gray-600:#6b6660; --gray-800:#2c2a27;
+  --accent:#1a5c4b; --accent-light:#e8f3ef; --accent-mid:#2d7a63;
+  --doc-color:#1a5c4b; --doc-bg:#e8f3ef;
+  --rec-color:#2c4a7c; --rec-bg:#eef1f8;
+  --pat-color:#7c3d12; --pat-bg:#fdf3ea;
+  --serif:'DM Serif Display',Georgia,serif;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --radius:2px; --radius-lg:8px;
+  --tr:0.22s cubic-bezier(0.4,0,0.2,1);
+  --sidebar-w:252px;
+  /* surface tokens for dark mode compat */
+  --surface:var(--white);
+  --surface2:var(--off-white);
+  --border:var(--gray-200);
+  --text:var(--black);
+  --text-mid:var(--gray-600);
+  --text-light:var(--gray-400);
+}
+[data-theme="dark"] {
+  --black:#f0ede7; --white:#131210; --off-white:#1a1916;
+  --gray-100:#222019; --gray-200:#2e2b27; --gray-400:#6b6660;
+  --gray-600:#9a9590; --gray-800:#d0cdc8;
+  --accent:#7fa898; --accent-light:rgba(127,168,152,.12); --accent-mid:#7fa898;
+  --doc-color:#7fa898; --doc-bg:rgba(127,168,152,.12);
+  --rec-color:#7a8fbc; --rec-bg:rgba(122,143,188,.12);
+  --pat-color:#c8845a; --pat-bg:rgba(200,132,90,.12);
+  --surface:#1a1916; --surface2:#131210; --border:#2e2b27;
+  --text:#f0ede7; --text-mid:#9a9590; --text-light:#6b6660;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--white);color:var(--black);
+  line-height:1.6;font-size:16px;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  transition:background .3s,color .3s}
+
+/* ═══════════════════════════════════════
+   PAGE ROUTING SYSTEM
+═══════════════════════════════════════ */
+.page{display:none}
+.page.active{display:block}
+.dashboard-page{display:none;height:100vh;overflow:hidden}
+.dashboard-page.active{display:flex}
+
+/* ═══════════════════════════════════════
+   SHARED UTILITIES
+═══════════════════════════════════════ */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;
+  border-radius:var(--radius);font-size:14px;font-weight:500;text-decoration:none;
+  cursor:pointer;border:1px solid transparent;transition:all var(--tr);
+  font-family:var(--sans)}
+.btn-primary{background:var(--black);color:var(--white);border-color:var(--black)}
+.btn-primary:hover{background:var(--accent);border-color:var(--accent)}
+.btn-secondary{background:transparent;color:var(--black);border-color:var(--gray-200)}
+.btn-secondary:hover{border-color:var(--black)}
+.btn-sm{padding:8px 16px;font-size:13px}
+.btn-xs{padding:6px 12px;font-size:12px}
+
+/* ═══════════════════════════════════════
+   THEME TOGGLE
+═══════════════════════════════════════ */
+.theme-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--gray-200);
+  background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:border-color var(--tr),background var(--tr);flex-shrink:0}
+.theme-btn:hover{border-color:var(--black);background:var(--gray-100)}
+.theme-btn svg{width:14px;height:14px;stroke:var(--gray-600);fill:none;transition:stroke var(--tr)}
+.theme-btn:hover svg{stroke:var(--black)}
+.icon-sun{display:block}
+.icon-moon{display:none}
+[data-theme="dark"] .icon-sun{display:none}
+[data-theme="dark"] .icon-moon{display:block}
+
+/* ═══════════════════════════════════════
+   LANDING NAV
+═══════════════════════════════════════ */
+nav.land-nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 48px;height:68px;
+  background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--gray-200);
+  transition:background .3s,border-color .3s
+}
+[data-theme="dark"] nav.land-nav{background:rgba(19,18,16,0.92)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--black);cursor:pointer}
+.nav-logo-mark{width:32px;height:32px;border:1.5px solid var(--black);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;transition:border-color .3s}
+.nav-logo-mark::after{content:'';width:8px;height:8px;background:var(--accent);border-radius:50%}
+.nav-logo-text{font-family:var(--serif);font-size:20px;letter-spacing:-.3px}
+.nav-links{display:flex;align-items:center;gap:32px;list-style:none}
+.nav-links a{text-decoration:none;color:var(--gray-600);font-size:14px;font-weight:400;transition:color var(--tr)}
+.nav-links a:hover{color:var(--black)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-cta{background:var(--black)!important;color:var(--white)!important;
+  padding:8px 20px;border-radius:var(--radius);font-weight:500!important;font-size:13px!important;
+  transition:background var(--tr)!important;text-decoration:none;display:inline-block}
+.nav-cta:hover{background:var(--accent)!important}
+
+/* ═══════════════════════════════════════
+   HERO — split layout from upload
+═══════════════════════════════════════ */
+.hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;padding-top:68px}
+.hero-left{display:flex;flex-direction:column;justify-content:center;
+  padding:80px 60px 80px 80px;border-right:1px solid var(--gray-200)}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:500;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:32px}
+.hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--accent)}
+.hero-title{font-family:var(--serif);font-size:clamp(44px,5vw,72px);line-height:1.08;
+  letter-spacing:-1px;color:var(--black);margin-bottom:28px}
+.hero-title .accent-word{color:var(--accent)}
+.hero-subtitle{font-size:17px;font-weight:300;color:var(--gray-600);line-height:1.7;
+  max-width:400px;margin-bottom:52px}
+.hero-stats{display:flex;gap:40px;padding-top:40px;border-top:1px solid var(--gray-200)}
+.stat-item{display:flex;flex-direction:column;gap:4px}
+.stat-number{font-family:var(--serif);font-size:32px;color:var(--black);line-height:1}
+.stat-label{font-size:12px;color:var(--gray-400);font-weight:400;letter-spacing:.05em}
+
+/* HERO RIGHT — login cards */
+.hero-right{display:flex;flex-direction:column;justify-content:center;
+  padding:80px 80px 80px 60px;background:var(--off-white)}
+.login-header{margin-bottom:40px}
+.login-header p{font-size:11px;font-weight:500;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--gray-400);margin-bottom:8px}
+.login-header h2{font-family:var(--serif);font-size:28px;font-weight:400;
+  color:var(--black);letter-spacing:-.3px}
+.login-cards{display:flex;flex-direction:column;gap:12px;margin-bottom:32px}
+.login-card{display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px;background:var(--white);border:1px solid var(--gray-200);
+  border-radius:var(--radius-lg);cursor:pointer;text-decoration:none;color:var(--black);
+  transition:border-color var(--tr),box-shadow var(--tr),transform var(--tr);
+  position:relative;overflow:hidden}
+.login-card::before{content:'';position:absolute;left:0;top:0;bottom:0;
+  width:3px;background:transparent;transition:background var(--tr)}
+.login-card:hover{border-color:var(--gray-400);box-shadow:0 4px 20px rgba(0,0,0,.06);transform:translateY(-1px)}
+.login-card.doc:hover::before{background:var(--doc-color)}
+.login-card.rec:hover::before{background:var(--rec-color)}
+.login-card.pat{border-color:var(--black)}
+.login-card.pat::before{background:var(--pat-color)}
+.card-left{display:flex;align-items:center;gap:16px}
+.card-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-icon.doctor{background:var(--doc-bg)}
+.card-icon.receptionist{background:var(--rec-bg)}
+.card-icon.patient{background:var(--pat-bg)}
+.card-icon svg{width:18px;height:18px}
+.card-info h3{font-size:15px;font-weight:500;color:var(--black);margin-bottom:2px}
+.card-info p{font-size:12px;color:var(--gray-400);font-weight:400}
+.card-arrow{width:28px;height:28px;border:1px solid var(--gray-200);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color var(--tr),background var(--tr)}
+.login-card:hover .card-arrow{border-color:var(--black);background:var(--black)}
+.login-card:hover .card-arrow svg{stroke:var(--white)}
+.card-arrow svg{width:12px;height:12px;stroke:var(--gray-400);fill:none;transition:stroke var(--tr)}
+.badge{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--pat-color);background:var(--pat-bg);padding:2px 8px;border-radius:20px;margin-left:10px}
+.login-note{font-size:12px;color:var(--gray-400);text-align:center}
+.login-note a{color:var(--accent);text-decoration:none}
+
+/* ═══════════════════════════════════════
+   LANDING SECTIONS
+═══════════════════════════════════════ */
+.land-section{padding:120px 80px}
+.section-eyebrow{font-size:11px;font-weight:500;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section-eyebrow::before{content:'';width:24px;height:1px;background:var(--accent)}
+.section-title{font-family:var(--serif);font-size:clamp(32px,3.5vw,52px);line-height:1.1;
+  letter-spacing:-.5px;color:var(--black);max-width:520px;margin-bottom:20px}
+.section-sub{font-size:16px;font-weight:300;color:var(--gray-600);max-width:480px;line-height:1.75}
+
+/* Features */
+#features{border-top:1px solid var(--gray-200)}
+.features-legend{display:flex;gap:20px;flex-wrap:wrap;margin-top:20px;margin-bottom:48px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--gray-600)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.legend-dot.doc{background:var(--doc-color)}
+.legend-dot.rec{background:var(--rec-color)}
+.legend-dot.pat{background:var(--pat-color)}
+.features-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;
+  border:1px solid var(--gray-200);border-radius:var(--radius-lg);overflow:hidden}
+.feature-item{padding:36px 32px;border-right:1px solid var(--gray-200);transition:background var(--tr)}
+.feature-item:nth-child(3n){border-right:none}
+.feature-item:nth-child(n+4){border-top:1px solid var(--gray-200)}
+.feature-item:hover{background:var(--off-white)}
+.feature-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.ftag{font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;
+  padding:2px 8px;border-radius:20px}
+.ftag.doc{background:var(--doc-bg);color:var(--doc-color)}
+.ftag.rec{background:var(--rec-bg);color:var(--rec-color)}
+.ftag.pat{background:var(--pat-bg);color:var(--pat-color)}
+.feature-icon-wrap{width:40px;height:40px;background:var(--gray-100);border-radius:var(--radius-lg);
+  display:flex;align-items:center;justify-content:center;margin-bottom:16px;transition:background var(--tr)}
+.feature-item:hover .feature-icon-wrap{background:var(--accent-light)}
+.feature-icon-wrap svg{width:18px;height:18px;stroke:var(--gray-600);fill:none;transition:stroke var(--tr)}
+.feature-item:hover .feature-icon-wrap svg{stroke:var(--accent)}
+.feature-item h3{font-size:15px;font-weight:500;color:var(--black);margin-bottom:8px}
+.feature-item p{font-size:13px;color:var(--gray-600);font-weight:300;line-height:1.65}
+
+/* How it works */
+#how-it-works{background:var(--black);border-top:1px solid var(--gray-200)}
+#how-it-works .section-eyebrow{color:var(--accent-mid)}
+#how-it-works .section-eyebrow::before{background:var(--accent-mid)}
+#how-it-works .section-title{color:var(--white)}
+#how-it-works .section-sub{color:var(--gray-400)}
+.steps-container{margin-top:72px;display:grid;grid-template-columns:repeat(4,1fr);
+  gap:0;border-top:1px solid rgba(255,255,255,.1)}
+.step{padding:48px 32px;border-right:1px solid rgba(255,255,255,.08)}
+.step:first-child{padding-left:0}
+.step:last-child{border-right:none}
+.step-num{font-family:var(--serif);font-size:52px;color:rgba(255,255,255,.08);
+  line-height:1;margin-bottom:24px;display:block}
+.step h3{font-size:16px;font-weight:500;color:var(--white);margin-bottom:12px}
+.step p{font-size:14px;color:rgba(255,255,255,.4);font-weight:300;line-height:1.7}
+
+/* About */
+#about{border-top:1px solid var(--gray-200);display:grid;grid-template-columns:1fr 1fr;padding:0}
+.about-left{padding:120px 80px;border-right:1px solid var(--gray-200)}
+.about-right{padding:120px 80px;background:var(--off-white);display:flex;flex-direction:column;justify-content:center}
+.trust-item{display:flex;gap:20px;align-items:flex-start;padding:28px 0;border-bottom:1px solid var(--gray-200)}
+.trust-item:first-child{border-top:1px solid var(--gray-200)}
+.trust-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;margin-top:7px;flex-shrink:0}
+.trust-item h4{font-size:14px;font-weight:500;color:var(--black);margin-bottom:4px}
+.trust-item p{font-size:13px;color:var(--gray-600);font-weight:300;line-height:1.6}
+
+/* CTA */
+#cta{background:var(--off-white);border-top:1px solid var(--gray-200);text-align:center;padding:120px 80px}
+#cta .section-eyebrow{justify-content:center}
+#cta .section-eyebrow::before{display:none}
+#cta .section-title{margin:0 auto 20px;text-align:center;max-width:600px}
+#cta .section-sub{margin:0 auto 52px;text-align:center}
+.cta-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* Footer */
+footer.land-footer{border-top:1px solid var(--gray-200);padding:40px 80px;
+  display:flex;align-items:center;justify-content:space-between}
+.footer-logo{display:flex;align-items:center;gap:10px;font-family:var(--serif);
+  font-size:18px;color:var(--black);text-decoration:none;cursor:pointer}
+.footer-logo-mark{width:24px;height:24px;border:1px solid var(--black);border-radius:50%;
+  display:flex;align-items:center;justify-content:center}
+.footer-logo-mark::after{content:'';width:6px;height:6px;background:var(--accent);border-radius:50%}
+.footer-links{display:flex;gap:28px;list-style:none}
+.footer-links a{font-size:13px;color:var(--gray-400);text-decoration:none;transition:color var(--tr)}
+.footer-links a:hover{color:var(--black)}
+.footer-copy{font-size:12px;color:var(--gray-400)}
+
+/* ═══════════════════════════════════════
+   MODAL
+═══════════════════════════════════════ */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(13,13,13,.6);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal{background:var(--white);border-radius:var(--radius-lg);padding:48px;
+  width:440px;max-width:calc(100vw - 40px);position:relative;
+  animation:modal-in .25s cubic-bezier(.34,1.56,.64,1)}
+@keyframes modal-in{from{opacity:0;transform:scale(.94) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-close{position:absolute;top:20px;right:20px;width:32px;height:32px;
+  border:1px solid var(--gray-200);border-radius:50%;background:transparent;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:border-color var(--tr)}
+.modal-close:hover{border-color:var(--black)}
+.modal-close svg{width:12px;height:12px;stroke:var(--gray-600);fill:none}
+.modal-role-badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;
+  font-weight:500;letter-spacing:.12em;text-transform:uppercase;margin-bottom:20px}
+.modal-role-dot{width:6px;height:6px;border-radius:50%}
+.modal h3{font-family:var(--serif);font-size:26px;font-weight:400;color:var(--black);
+  margin-bottom:8px;letter-spacing:-.2px}
+.modal>p{font-size:14px;color:var(--gray-600);font-weight:300;margin-bottom:24px}
+.demo-note{display:flex;align-items:center;gap:8px;background:var(--accent-light);
+  border:1px solid var(--doc-bg);border-radius:6px;padding:10px 14px;
+  font-size:12px;color:var(--doc-color);margin-bottom:20px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:11px;font-weight:500;letter-spacing:.08em;
+  color:var(--gray-800);text-transform:uppercase;margin-bottom:8px}
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;padding:11px 16px;border:1px solid var(--gray-200);
+  border-radius:var(--radius);font-size:15px;font-family:var(--sans);
+  color:var(--black);background:var(--white);outline:none;
+  transition:border-color var(--tr)}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--black)}
+.form-row{display:flex;gap:10px;margin-bottom:16px}
+.form-row .form-group{flex:1;margin-bottom:0}
+.form-submit{width:100%;padding:13px;border:none;border-radius:var(--radius);
+  font-size:14px;font-weight:500;font-family:var(--sans);cursor:pointer;margin-top:20px;
+  transition:background var(--tr);letter-spacing:.02em;color:var(--white)}
+.form-submit.doc{background:var(--doc-color)}
+.form-submit.doc:hover{background:#0f3d32}
+.form-submit.rec{background:var(--rec-color)}
+.form-submit.rec:hover{background:#1e3357}
+.form-submit.pat{background:var(--black)}
+.form-submit.pat:hover{background:var(--accent)}
+.form-footer{text-align:center;margin-top:16px;font-size:12px;color:var(--gray-400)}
+.form-footer a{color:var(--accent);text-decoration:none}
+
+/* ═══════════════════════════════════════
+   DASHBOARD SHELL
+═══════════════════════════════════════ */
+.sidebar{
+  width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--gray-200);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;
+  transition:width .3s cubic-bezier(.4,0,.2,1),background .3s,border-color .3s
+}
+.sidebar.collapsed{width:64px}
+.sb-header{display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:64px;border-bottom:1px solid var(--gray-200);flex-shrink:0}
+.sb-logo{font-family:var(--serif);font-size:16px;color:var(--black);white-space:nowrap;
+  overflow:hidden;transition:opacity .2s;letter-spacing:-.2px}
+.sidebar.collapsed .sb-logo{opacity:0;pointer-events:none;width:0}
+.sb-toggle{width:28px;height:28px;border-radius:6px;background:var(--gray-100);
+  border:1px solid var(--gray-200);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;transition:background .2s,transform .3s}
+.sb-toggle:hover{background:var(--gray-200)}
+.sidebar.collapsed .sb-toggle{transform:rotate(180deg)}
+.sb-role{padding:14px 16px;border-bottom:1px solid var(--gray-200);flex-shrink:0}
+.sb-role-pill{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--gray-100);border:1px solid var(--gray-200);border-radius:var(--radius-lg);overflow:hidden}
+.role-av{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;font-size:.68rem;font-weight:600;
+  color:#fff;letter-spacing:.04em}
+.role-av.doc{background:var(--doc-color)}
+.role-av.rec{background:var(--rec-color)}
+.role-av.pat{background:var(--pat-color)}
+.sb-role-info{overflow:hidden}
+.sb-role-name{font-size:.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--black)}
+.sb-role-type{font-size:.67rem;color:var(--gray-400);letter-spacing:.05em;text-transform:uppercase}
+.sidebar.collapsed .sb-role-info{display:none}
+.sb-nav{flex:1;overflow-y:auto;padding:10px 0;scrollbar-width:none}
+.sb-nav::-webkit-scrollbar{display:none}
+.sb-section{padding:10px 20px 4px;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--gray-400);font-weight:500;white-space:nowrap;transition:opacity .2s}
+.sidebar.collapsed .sb-section{opacity:0}
+.nav-item{display:flex;align-items:center;gap:12px;padding:9px 20px;cursor:pointer;
+  transition:background var(--tr),color var(--tr);text-decoration:none;
+  color:var(--gray-600);white-space:nowrap;overflow:hidden;font-size:.84rem;
+  position:relative}
+.nav-item:hover{background:var(--gray-100);color:var(--black)}
+.nav-item.active{color:var(--black);background:var(--gray-100)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;
+  width:2px;border-radius:0 2px 2px 0}
+.nav-item.active.doc-nav::before{background:var(--doc-color)}
+.nav-item.active.rec-nav::before{background:var(--rec-color)}
+.nav-item.active.pat-nav::before{background:var(--pat-color)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;
+  stroke-width:1.8;stroke-linecap:round}
+.nav-label{transition:opacity .2s}
+.sidebar.collapsed .nav-label{opacity:0;pointer-events:none}
+.nav-badge{margin-left:auto;font-size:.6rem;font-weight:600;padding:2px 7px;
+  border-radius:20px;flex-shrink:0;color:#fff}
+.nav-badge.green{background:var(--doc-color)}
+.nav-badge.blue{background:var(--rec-color)}
+.nav-badge.red{background:#c0392b}
+.sidebar.collapsed .nav-badge{display:none}
+.sb-footer{padding:14px 16px;border-top:1px solid var(--gray-200);flex-shrink:0;
+  display:flex;align-items:center;gap:8px}
+.sidebar.collapsed .sb-exit-label{display:none}
+.sb-exit{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.78rem;
+  color:var(--gray-400);transition:color .2s}
+.sb-exit:hover{color:var(--black)}
+.sb-exit svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+
+/* MAIN CONTENT */
+.main-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:64px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;
+  justify-content:space-between;padding:0 28px;flex-shrink:0;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(12px);
+  transition:background .3s,border-color .3s}
+[data-theme="dark"] .topbar{background:rgba(19,18,16,.92)}
+.topbar-title{font-family:var(--serif);font-size:1.2rem;letter-spacing:-.2px;color:var(--black)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.search-wrap{display:flex;align-items:center;gap:8px;background:var(--gray-100);
+  border:1px solid var(--gray-200);border-radius:var(--radius);padding:8px 14px;flex:1;max-width:280px}
+.search-wrap input{border:none;background:none;font-family:var(--sans);
+  font-size:.84rem;color:var(--black);outline:none;flex:1}
+.search-wrap input::placeholder{color:var(--gray-400)}
+.search-wrap svg{width:13px;height:13px;stroke:var(--gray-400);fill:none;flex-shrink:0}
+.notif-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--gray-200);
+  background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  position:relative;transition:background .2s}
+.notif-btn:hover{background:var(--gray-100)}
+.notif-btn svg{width:15px;height:15px;stroke:var(--gray-600);fill:none}
+.notif-dot{position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:50%;
+  background:#c0392b;border:2px solid var(--white)}
+.content-area{flex:1;overflow-y:auto;padding:28px;scrollbar-width:thin;
+  scrollbar-color:var(--gray-200) transparent;background:var(--off-white)}
+
+/* ═══════════════════════════════════════
+   PANELS
+═══════════════════════════════════════ */
+.panel{display:none}
+.panel.active{display:block;animation:fadeUp .35s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* DASH CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kpi-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);
+  padding:22px;transition:box-shadow .2s}
+.kpi-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.06)}
+.kpi-icon{width:36px;height:36px;border-radius:var(--radius-lg);background:var(--gray-100);
+  display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.kpi-icon svg{width:16px;height:16px;stroke:var(--gray-600);fill:none;stroke-width:1.8}
+.kpi-label{font-size:.7rem;font-weight:500;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--gray-400);margin-bottom:6px}
+.kpi-value{font-family:var(--serif);font-size:2.2rem;line-height:1;color:var(--black)}
+.kpi-delta{font-size:.72rem;color:var(--doc-color);margin-top:5px}
+
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-h{font-family:var(--serif);font-size:1.15rem;letter-spacing:-.2px;color:var(--black)}
+
+/* TABLE */
+.table-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px}
+.table-card-head{padding:18px 22px;border-bottom:1px solid var(--gray-200);
+  display:flex;align-items:center;justify-content:space-between}
+.table-card-title{font-family:var(--serif);font-size:1.05rem;color:var(--black);letter-spacing:-.2px}
+table{width:100%;border-collapse:collapse}
+th{padding:11px 22px;text-align:left;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--gray-400);font-weight:500;border-bottom:1px solid var(--gray-200)}
+td{padding:13px 22px;font-size:.84rem;color:var(--gray-600);border-bottom:1px solid var(--gray-200)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--gray-100)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
+  border-radius:20px;font-size:.68rem;font-weight:500;letter-spacing:.04em}
+.pill-green{background:var(--doc-bg);color:var(--doc-color)}
+.pill-blue{background:var(--rec-bg);color:var(--rec-color)}
+.pill-orange{background:var(--pat-bg);color:var(--pat-color)}
+.pill-red{background:#fdecea;color:#c0392b}
+.pill-gray{background:var(--gray-100);color:var(--gray-400)}
+
+/* URGENCY LIST */
+.urgency-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:22px;margin-bottom:20px}
+.urgency-title{font-family:var(--serif);font-size:1.05rem;margin-bottom:18px;color:var(--black)}
+.uq-item{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--gray-200)}
+.uq-item:last-child{border-bottom:none}
+.uq-rank{font-family:var(--serif);font-size:1.4rem;color:var(--gray-200);width:24px;text-align:center;flex-shrink:0}
+.uq-info{flex:1}
+.uq-name{font-size:.87rem;font-weight:500;color:var(--black)}
+.uq-sym{font-size:.74rem;color:var(--gray-600);margin-top:2px}
+.uq-time{font-size:.72rem;color:var(--gray-400);flex-shrink:0}
+.urg-acute{background:#fdecea;color:#c0392b;font-size:.62rem;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.07em}
+.urg-urgent{background:var(--pat-bg);color:var(--pat-color);font-size:.62rem;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.07em}
+.urg-medium{background:#fef9ea;color:#a07820;font-size:.62rem;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.07em}
+.urg-routine{background:var(--doc-bg);color:var(--doc-color);font-size:.62rem;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.07em}
+
+/* SCHEDULE BLOCKS */
+.schedule-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px}
+.sched-grid{display:grid;grid-template-columns:68px 1fr}
+.time-slot{height:54px;padding:6px 10px;font-size:.7rem;color:var(--gray-400);
+  border-bottom:1px solid var(--gray-200);border-right:1px solid var(--gray-200);
+  display:flex;align-items:flex-start}
+.appt-slot{height:54px;border-bottom:1px solid var(--gray-200);position:relative;padding:5px 10px}
+.appt-block{position:absolute;left:8px;right:8px;top:4px;border-radius:4px;padding:5px 10px;
+  font-size:.72rem;font-weight:500;overflow:hidden;border-left:2px solid transparent}
+.appt-block.confirmed{background:var(--doc-bg);color:var(--doc-color);border-left-color:var(--doc-color)}
+.appt-block.urgent{background:#fdecea;color:#c0392b;border-left-color:#c0392b}
+.appt-block.private{background:#f0eef8;color:#5a52a8;border-left-color:#7a72d8}
+
+/* CLINIC MAP */
+.map-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:22px;margin-bottom:20px}
+.map-title{font-family:var(--serif);font-size:1.05rem;color:var(--black);margin-bottom:18px;
+  display:flex;align-items:center;justify-content:space-between}
+.live-badge{font-size:.65rem;font-weight:500;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--doc-color);background:var(--doc-bg);padding:3px 10px;border-radius:20px;
+  display:inline-flex;align-items:center;gap:5px}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--doc-color);
+  animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.room-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.room{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:var(--radius-lg);
+  padding:14px;text-align:center;transition:border-color .2s}
+.room.occ{border-color:#e74c3c;background:#fdecea}
+.room.avail{border-color:var(--doc-color);background:var(--doc-bg)}
+.room.priv{border-color:#7a72d8;background:#f0eef8}
+.room-num{font-family:var(--serif);font-size:1.5rem;font-weight:400;line-height:1}
+.room.occ .room-num{color:#c0392b}
+.room.avail .room-num{color:var(--doc-color)}
+.room.priv .room-num{color:#5a52a8}
+.room-status{font-size:.64rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-top:3px}
+.room.occ .room-status{color:#c0392b}
+.room.avail .room-status{color:var(--doc-color)}
+.room.priv .room-status{color:#5a52a8}
+.room-time{font-size:.67rem;color:var(--gray-400);margin-top:3px}
+.map-legend{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap}
+.ml-item{display:flex;align-items:center;gap:6px;font-size:.71rem;color:var(--gray-600)}
+.ml-dot{width:7px;height:7px;border-radius:50%}
+
+/* WHATSAPP */
+.wa-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px}
+.wa-head{background:#075e54;color:#fff;padding:14px 18px;display:flex;align-items:center;gap:12px}
+[data-theme="dark"] .wa-head{background:#0a3530}
+.wa-av{width:34px;height:34px;border-radius:50%;background:#25d366;
+  display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:#fff}
+.wa-nm{font-size:.88rem;font-weight:500}
+.wa-sub-text{font-size:.7rem;opacity:.7}
+.wa-msgs{padding:16px 18px;display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto}
+.wa-msg{max-width:78%;padding:9px 13px;border-radius:10px;font-size:.8rem;line-height:1.5}
+.wa-msg.out{align-self:flex-end;background:#dcf8c6;color:#1a3a1a;border-radius:10px 10px 2px 10px}
+.wa-msg.in{align-self:flex-start;background:var(--gray-100);color:var(--gray-600);border-radius:10px 10px 10px 2px}
+[data-theme="dark"] .wa-msg.out{background:#1a3a2a;color:#7fd87f}
+.wa-time{font-size:.6rem;opacity:.45;margin-top:3px;text-align:right}
+.wa-input-row{padding:10px 14px;border-top:1px solid var(--gray-200);display:flex;gap:8px}
+.wa-input-row input{flex:1;padding:9px 12px;background:var(--gray-100);border:1px solid var(--gray-200);
+  border-radius:20px;font-size:.82rem;font-family:var(--sans);color:var(--black);outline:none}
+.wa-send-btn{padding:9px 18px;border-radius:20px;background:#25d366;border:none;
+  color:#fff;font-size:.78rem;font-weight:500;cursor:pointer}
+
+/* HISTORY TIMELINE */
+.history-item{display:flex;gap:18px;padding:18px 0;border-bottom:1px solid var(--gray-200)}
+.history-item:last-child{border-bottom:none}
+.hist-date{width:76px;flex-shrink:0;text-align:right;font-size:.72rem;color:var(--gray-400)}
+.hist-dot{width:9px;height:9px;border-radius:50%;background:var(--doc-color);
+  flex-shrink:0;margin-top:3px;border:2px solid var(--off-white)}
+.hist-title{font-size:.86rem;font-weight:500;color:var(--black);margin-bottom:4px}
+.hist-text{font-size:.77rem;color:var(--gray-600);line-height:1.6}
+
+/* SMART GAP */
+.gap-card{background:var(--white);border:1.5px solid var(--doc-color);border-radius:var(--radius-lg);
+  padding:20px 22px;margin-bottom:16px;display:flex;gap:14px}
+.gap-icon{width:38px;height:38px;border-radius:var(--radius-lg);background:var(--doc-bg);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.gap-icon svg{width:16px;height:16px;stroke:var(--doc-color);fill:none}
+.gap-title{font-size:.86rem;font-weight:500;color:var(--black);margin-bottom:4px}
+.gap-text{font-size:.77rem;color:var(--gray-600);line-height:1.6;margin-bottom:10px}
+.gap-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* PRIVATE */
+.priv-card{background:var(--white);border:1.5px solid #7a72d8;border-radius:var(--radius-lg);
+  padding:18px 20px;margin-bottom:16px;display:flex;gap:12px;align-items:center}
+.priv-icon{width:36px;height:36px;border-radius:var(--radius-lg);background:#f0eef8;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.priv-icon svg{width:15px;height:15px;stroke:#7a72d8;fill:none}
+.priv-title{font-size:.85rem;font-weight:500;color:#5a52a8;margin-bottom:3px}
+.priv-text{font-size:.74rem;color:var(--gray-600);line-height:1.55}
+
+/* NOTIF LIST */
+.notif-list{display:flex;flex-direction:column;gap:10px}
+.notif-item{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);
+  padding:14px 18px;display:flex;gap:12px}
+.notif-icon{width:34px;height:34px;border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.notif-icon svg{width:15px;height:15px;fill:none}
+.notif-title{font-size:.84rem;font-weight:500;color:var(--black);margin-bottom:3px}
+.notif-text{font-size:.76rem;color:var(--gray-600);line-height:1.55}
+.notif-time{font-size:.67rem;color:var(--gray-400);margin-top:4px}
+
+/* QUEUE POSITION */
+.queue-pos-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:20px;margin-bottom:20px}
+.queue-num{font-family:var(--serif);font-size:3.5rem;color:var(--accent);line-height:1;margin-bottom:4px}
+.progress-bar{background:var(--gray-100);border-radius:100px;height:5px;margin:12px 0 6px}
+.progress-fill{background:var(--accent);height:5px;border-radius:100px;width:90%}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px}
+
+/* EMERGENCY */
+.emergency-card{background:#fdecea;border:1.5px solid #e74c3c;border-radius:var(--radius-lg);padding:20px;margin-bottom:20px}
+.emergency-title{font-size:.86rem;font-weight:600;color:#c0392b;margin-bottom:8px}
+.emergency-text{font-size:.79rem;color:#c0392b;line-height:1.6;margin-bottom:14px;opacity:.85}
+
+/* GREETING */
+.greeting{margin-bottom:22px}
+.greeting h2{font-family:var(--serif);font-size:1.55rem;font-weight:400;
+  letter-spacing:-.3px;color:var(--black);margin-bottom:4px}
+.greeting p{font-size:.83rem;color:var(--gray-600)}
+
+/* PAGE LOADER */
+#page-loader{position:fixed;inset:0;z-index:999;background:var(--white);
+  display:flex;align-items:center;justify-content:center;transition:opacity .4s}
+#page-loader.hide{opacity:0;pointer-events:none}
+.loader-inner{text-align:center}
+.loader-logo{font-family:var(--serif);font-size:2rem;color:var(--black);
+  animation:loaderPulse 1.4s ease infinite}
+.loader-sub{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--gray-400);margin-top:6px}
+@keyframes loaderPulse{0%,100%{opacity:.2}50%{opacity:1}}
+
+/* ANIMATIONS */
+.fade-up{opacity:0;transform:translateY(18px);
+  animation:fade-up-in .7s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes fade-up-in{to{opacity:1;transform:translateY(0)}}
+.delay-1{animation-delay:.1s}.delay-2{animation-delay:.22s}.delay-3{animation-delay:.34s}
+
+/* RESPONSIVE */
+@media(max-width:1024px){
+  nav.land-nav{padding:0 32px}
+  .land-section{padding:80px 40px}
+  footer.land-footer{padding:32px 40px}
+  .hero{grid-template-columns:1fr}
+  .hero-left{padding:80px 40px 60px;border-right:none;border-bottom:1px solid var(--gray-200)}
+  .hero-right{padding:60px 40px 80px}
+  .features-grid{grid-template-columns:1fr 1fr}
+  .steps-container{grid-template-columns:1fr 1fr}
+  #about{grid-template-columns:1fr}
+  .about-left{border-right:none;border-bottom:1px solid var(--gray-200);padding:80px 40px}
+  .about-right{padding:80px 40px}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:640px){
+  nav.land-nav{padding:0 20px}
+  .nav-links{display:none}
+  .hero-left,.hero-right{padding:48px 24px}
+  .land-section{padding:60px 24px}
+  .features-grid{grid-template-columns:1fr}
+  .steps-container{grid-template-columns:1fr}
+  footer.land-footer{flex-direction:column;gap:16px;text-align:center;padding:28px 24px}
+  .footer-links{flex-wrap:wrap;justify-content:center}
+  #cta{padding:60px 24px}
+  .about-left,.about-right{padding:60px 24px}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .two-col,.three-col{grid-template-columns:1fr}
+  .room-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOADER ── -->
+<div id="page-loader">
+  <div class="loader-inner">
+    <div class="loader-logo">QueueTonic</div>
+    <div class="loader-sub">Appointment Intelligence</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LANDING PAGE
+══════════════════════════════════════════ -->
+<div id="page-home" class="page active">
+
+<nav class="land-nav">
+  <a class="nav-logo" onclick="showPage('home');return false" href="#">
+    <div class="nav-logo-mark"></div>
+    <span class="nav-logo-text">QueueTonic</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how-it-works">How It Works</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#" class="nav-cta" onclick="openModal('patient');return false">Book Appointment</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+      <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home-top">
+  <div class="hero-left">
+    <span class="hero-eyebrow fade-up">Healthcare Scheduling Platform</span>
+    <h1 class="hero-title fade-up delay-1">Appointments,<br/><span class="accent-word">finally</span><br/>effortless.</h1>
+    <p class="hero-subtitle fade-up delay-2">QueueTonic brings calm to healthcare scheduling — connecting doctors, receptionists, and patients in one clean, intelligent platform.</p>
+    <div class="hero-stats fade-up delay-3">
+      <div class="stat-item"><span class="stat-number">98%</span><span class="stat-label">Scheduling Accuracy</span></div>
+      <div class="stat-item"><span class="stat-number">3×</span><span class="stat-label">Faster Check-In</span></div>
+      <div class="stat-item"><span class="stat-number">Zero</span><span class="stat-label">Double Bookings</span></div>
+    </div>
+  </div>
+  <div class="hero-right fade-up delay-2">
+    <div class="login-header">
+      <p>Portal Access</p>
+      <h2>Sign in to your workspace</h2>
+    </div>
+    <div class="login-cards">
+      <a href="#" class="login-card doc" onclick="openModal('doctor');return false">
+        <div class="card-left">
+          <div class="card-icon doctor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#1a5c4b" stroke-width="1.8"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3M3 16v3a2 2 0 002 2h3m8 0h3a2 2 0 002-2v-3"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <div class="card-info"><h3>Doctor</h3><p>Schedule, patient records &amp; analytics</p></div>
+        </div>
+        <div class="card-arrow"><svg viewBox="0 0 12 12"><path d="M2 6h8M7 3l3 3-3 3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </a>
+      <a href="#" class="login-card rec" onclick="openModal('receptionist');return false">
+        <div class="card-left">
+          <div class="card-icon receptionist">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2c4a7c" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M8 14h4M8 17h8"/></svg>
+          </div>
+          <div class="card-info"><h3>Receptionist</h3><p>Queue control &amp; clinic operations</p></div>
+        </div>
+        <div class="card-arrow"><svg viewBox="0 0 12 12"><path d="M2 6h8M7 3l3 3-3 3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </a>
+      <a href="#" class="login-card pat" onclick="openModal('patient');return false">
+        <div class="card-left">
+          <div class="card-icon patient">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#7c3d12" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </div>
+          <div class="card-info"><h3>Patient <span class="badge">Book Now</span></h3><p>Appointments, queue &amp; health records</p></div>
+        </div>
+        <div class="card-arrow"><svg viewBox="0 0 12 12"><path d="M2 6h8M7 3l3 3-3 3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </a>
+    </div>
+    <p class="login-note">New clinic? <a href="#">Register your practice</a> — it takes 2 minutes.</p>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="land-section" id="features">
+  <div class="section-eyebrow">Platform Features</div>
+  <h2 class="section-title">Intelligence built into every interaction.</h2>
+  <p class="section-sub">Designed for each role — each person sees exactly what they need, nothing they don't.</p>
+  <div class="features-legend">
+    <div class="legend-item"><div class="legend-dot doc"></div>Doctor</div>
+    <div class="legend-item"><div class="legend-dot rec"></div>Receptionist</div>
+    <div class="legend-item"><div class="legend-dot pat"></div>Patient</div>
+  </div>
+  <div class="features-grid">
+    <div class="feature-item"><div class="feature-tags"><span class="ftag rec">Receptionist</span></div><div class="feature-icon-wrap"><svg viewBox="0 0 24 24" stroke-width="1.6"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><h3>Smart Gap Fill</h3><p>Cancellations auto-trigger a waitlist sweep. Next eligible patient gets a WhatsApp/SMS offer — slot filled in minutes.</p></div>
+    <div class="feature-item"><div class="feature-tags"><span class="ftag doc">Doctor</span><span class="ftag pat">Patient</span></div><div class="feature-icon-wrap"><svg viewBox="0 0 24 24" stroke-width="1.6"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><h3>WhatsApp Bot</h3><p>Patients book, reschedule, and check queue position via WhatsApp. Doctors receive urgent flags. No app download needed.</p></div>
+    <div class="feature-item"><div class="feature-tags"><span class="ftag doc">Doctor</span></div><div class="feature-icon-wrap"><svg viewBox="0 0 24 24" stroke-width="1.6"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><h3>Patient History</h3><p>Complete visit timeline, prescriptions, and notes visible to the doctor before the patient enters. Private by default.</p></div>
+    <div class="feature-item"><div class="feature-tags"><span class="ftag doc">Doctor</span><span class="ftag rec">Receptionist</span></div><div class="feature-icon-wrap"><svg viewBox="0 0 24 24" stroke-width="1.6"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><h3>Urgency Intelligence</h3><p>Patients describe symptoms during booking. AI scores urgency — acute cases auto-prioritised to the earliest available slot.</p></div>
+    <div class="feature-item"><div class="feature-tags"><span class="ftag pat">Patient</span></div><div class="feature-icon-wrap"><svg viewBox="0 0 24 24" stroke-width="1.6"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div><h3>Private Slots</h3><p>Sensitive consultations booked as private — reason hidden from reception. Only the doctor sees the nature of the visit.</p></div>
+    <div class="feature-item"><div class="feature-tags"><span class="ftag doc">Doctor</span><span class="ftag rec">Receptionist</span><span class="ftag pat">Patient</span></div><div class="feature-icon-wrap"><svg viewBox="0 0 24 24" stroke-width="1.6"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div><h3>Multi-Channel Alerts</h3><p>WhatsApp, SMS, and email — each role receives context-appropriate messages with zero overlap or duplication.</p></div>
+    <div class="feature-item"><div class="feature-tags"><span class="ftag rec">Receptionist</span></div><div class="feature-icon-wrap"><svg viewBox="0 0 24 24" stroke-width="1.6"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></div><h3>Doctor Availability Shift</h3><p>If a doctor is absent, patients are automatically redistributed to available colleagues with one confirmation click.</p></div>
+    <div class="feature-item"><div class="feature-tags"><span class="ftag pat">Patient</span><span class="ftag rec">Receptionist</span></div><div class="feature-icon-wrap"><svg viewBox="0 0 24 24" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><h3>One-Tap Reschedule</h3><p>When an appointment overruns, waiting patients receive an instant reschedule offer — no standing in queue required.</p></div>
+    <div class="feature-item"><div class="feature-tags"><span class="ftag doc">Doctor</span><span class="ftag rec">Receptionist</span></div><div class="feature-icon-wrap"><svg viewBox="0 0 24 24" stroke-width="1.6"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><h3>Interactive Clinic Map</h3><p>Visual floor map with real-time room status and AI-predicted consultation durations — so no one wanders lost.</p></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="land-section" id="how-it-works" style="background:var(--black);border-top:1px solid var(--gray-200)">
+  <div class="section-eyebrow" style="color:var(--accent-mid)">Process</div>
+  <h2 class="section-title" style="color:var(--white)">From booking to consultation in minutes.</h2>
+  <p class="section-sub" style="color:var(--gray-400)">A streamlined flow that respects everyone's time — patients, receptionists, and doctors alike.</p>
+  <div class="steps-container">
+    <div class="step"><span class="step-num">1</span><h3>Patient Books</h3><p>Choose a doctor, describe symptoms, pick a slot. Urgency is scored instantly. Takes under 60 seconds.</p></div>
+    <div class="step"><span class="step-num">2</span><h3>Clinic Confirms</h3><p>Receptionist reviews the queue. High-urgency cases are flagged. Patient gets instant confirmation via WhatsApp.</p></div>
+    <div class="step"><span class="step-num">3</span><h3>Day-of Alerts</h3><p>Reminders sent automatically. Live queue position shown in real-time. One-tap reschedule if delays occur.</p></div>
+    <div class="step"><span class="step-num">4</span><h3>Doctor Consults</h3><p>Full patient history loaded before entry. Private slots respected. Visit logged — cycle repeats seamlessly.</p></div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" style="border-top:1px solid var(--gray-200);display:grid;grid-template-columns:1fr 1fr;padding:0">
+  <div class="about-left">
+    <div class="section-eyebrow">Why QueueTonic</div>
+    <h2 class="section-title">Designed around trust. Built for reliability.</h2>
+    <p class="section-sub">Healthcare scheduling is high-stakes. We treat it that way — every decision prioritises uptime, data security, and clinical accuracy.</p>
+    <br/><p class="section-sub">Built in close collaboration with clinic administrators and practitioners who were tired of clunky, overengineered tools that slowed them down.</p>
+  </div>
+  <div class="about-right">
+    <div class="trust-item"><div class="trust-dot"></div><div><h4>HIPAA-aligned data practices</h4><p>Patient data encrypted at rest and in transit. No data sold, no third-party sharing — ever.</p></div></div>
+    <div class="trust-item"><div class="trust-dot"></div><div><h4>99.9% uptime guarantee</h4><p>Mission-critical infrastructure with redundant failover — your clinic never goes dark.</p></div></div>
+    <div class="trust-item"><div class="trust-dot"></div><div><h4>Strict role-based access</h4><p>Doctors see clinical data. Receptionists see schedules only. Patients see their own records exclusively.</p></div></div>
+    <div class="trust-item"><div class="trust-dot"></div><div><h4>Dedicated onboarding support</h4><p>Every clinic gets a human onboarding specialist — not a chatbot, not a help article.</p></div></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta" class="land-section" style="background:var(--off-white);border-top:1px solid var(--gray-200);text-align:center">
+  <div class="section-eyebrow" style="justify-content:center"><span>Get Started</span></div>
+  <h2 class="section-title" style="margin:0 auto 20px;text-align:center;max-width:600px">Ready to transform your clinic?</h2>
+  <p class="section-sub" style="margin:0 auto 52px;text-align:center">Join forward-thinking practices who've moved past the waiting-room chaos. Set up in one afternoon.</p>
+  <div class="cta-buttons">
+    <a href="#" class="btn btn-primary" onclick="openModal('patient');return false">Book a Demo</a>
+    <a href="#" class="btn btn-secondary" onclick="openModal('doctor');return false">Doctor Login</a>
+  </div>
+</section>
+
+<footer class="land-footer">
+  <a class="footer-logo" onclick="showPage('home');return false" href="#"><div class="footer-logo-mark"></div>QueueTonic</a>
+  <ul class="footer-links">
+    <li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li>
+    <li><a href="#">Security</a></li><li><a href="#">Contact</a></li><li><a href="#">Support</a></li>
+  </ul>
+  <span class="footer-copy">© 2026 QueueTonic · TechBlitz26 · snack overflow</span>
+</footer>
+
+</div><!-- /page-home -->
+
+<!-- ══════════════════════════════════════════
+     DOCTOR DASHBOARD
+══════════════════════════════════════════ -->
+<div id="page-doctor" class="dashboard-page">
+  <div class="sidebar" id="sb-doctor">
+    <div class="sb-header">
+      <span class="sb-logo">QueueTonic</span>
+      <button class="sb-toggle" onclick="toggleSB('doctor')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+    </div>
+    <div class="sb-role">
+      <div class="sb-role-pill">
+        <div class="role-av doc">DR</div>
+        <div class="sb-role-info">
+          <div class="sb-role-name">Dr. Arjun Mehta</div>
+          <div class="sb-role-type">Doctor · General</div>
+        </div>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-section">Overview</div>
+      <a class="nav-item doc-nav active" onclick="showPanel('doctor','overview');return false" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a class="nav-item doc-nav" onclick="showPanel('doctor','schedule');return false" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span class="nav-label">Today's Schedule</span>
+        <span class="nav-badge green">8</span>
+      </a>
+      <div class="sb-section">Clinical</div>
+      <a class="nav-item doc-nav" onclick="showPanel('doctor','urgency');return false" href="#">
+        <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span class="nav-label">Urgency Queue</span>
+        <span class="nav-badge red">2</span>
+      </a>
+      <a class="nav-item doc-nav" onclick="showPanel('doctor','history');return false" href="#">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span class="nav-label">Patient History</span>
+      </a>
+      <a class="nav-item doc-nav" onclick="showPanel('doctor','private');return false" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span class="nav-label">Private Slots</span>
+      </a>
+      <div class="sb-section">Clinic</div>
+      <a class="nav-item doc-nav" onclick="showPanel('doctor','map');return false" href="#">
+        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span class="nav-label">Clinic Map</span>
+      </a>
+      <a class="nav-item doc-nav" onclick="showPanel('doctor','notifications');return false" href="#">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="nav-label">Notifications</span>
+        <span class="nav-badge green">3</span>
+      </a>
+    </nav>
+    <div class="sb-footer">
+      <button class="theme-btn" onclick="toggleTheme()">
+        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+      <div class="sb-exit" onclick="showPage('home')">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        <span class="sb-exit-label">Exit Portal</span>
+      </div>
+    </div>
+  </div>
+  <div class="main-wrap">
+    <div class="topbar">
+      <span class="topbar-title" id="doc-topbar-title">Dashboard</span>
+      <div class="topbar-right">
+        <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input placeholder="Search patients…"/></div>
+        <button class="notif-btn"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg><div class="notif-dot"></div></button>
+        <button class="theme-btn" onclick="toggleTheme()">
+          <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="content-area">
+
+      <!-- OVERVIEW -->
+      <div class="panel active" id="doc-panel-overview">
+        <div class="greeting"><h2>Good morning, <i>Dr. Mehta.</i></h2><p>Thursday, 12 March 2026 · 8 appointments today</p></div>
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-icon"><svg viewBox="0 0 24 24" stroke-width="1.8" fill="none" stroke="var(--gray-600)" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="kpi-label">Today's Patients</div><div class="kpi-value">8</div><div class="kpi-delta">↑ 2 from yesterday</div></div>
+          <div class="kpi-card"><div class="kpi-icon" style="background:#fdecea"><svg viewBox="0 0 24 24" stroke-width="1.8" fill="none" stroke="#c0392b" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="kpi-label">Urgent Cases</div><div class="kpi-value">2</div><div class="kpi-delta" style="color:#c0392b">Requires attention</div></div>
+          <div class="kpi-card"><div class="kpi-icon" style="background:#f0eef8"><svg viewBox="0 0 24 24" stroke-width="1.8" fill="none" stroke="#7a72d8" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div><div class="kpi-label">Private Slots</div><div class="kpi-value">1</div><div class="kpi-delta" style="color:#7a72d8">Confidential</div></div>
+          <div class="kpi-card"><div class="kpi-icon"><svg viewBox="0 0 24 24" stroke-width="1.8" fill="none" stroke="var(--gray-600)" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="kpi-label">Avg. Wait Time</div><div class="kpi-value">14<span style="font-size:1.1rem">m</span></div><div class="kpi-delta">↓ 3m improved</div></div>
+        </div>
+        <div class="two-col">
+          <div class="urgency-card">
+            <div class="urgency-title">Urgency Queue — Today</div>
+            <div class="uq-item"><div class="uq-rank">1</div><div class="uq-info"><div class="uq-name">Priya Sharma</div><div class="uq-sym">High fever 103°F, chills</div></div><span class="urg-acute">ACUTE</span><div class="uq-time">9:00 AM</div></div>
+            <div class="uq-item"><div class="uq-rank">2</div><div class="uq-info"><div class="uq-name">Rohan Gupta</div><div class="uq-sym">Chest pain, shortness of breath</div></div><span class="urg-urgent">URGENT</span><div class="uq-time">9:15 AM</div></div>
+            <div class="uq-item"><div class="uq-rank">3</div><div class="uq-info"><div class="uq-name">Meera Nair</div><div class="uq-sym">Post-surgery review</div></div><span class="urg-medium">MEDIUM</span><div class="uq-time">10:00 AM</div></div>
+            <div class="uq-item"><div class="uq-rank">4</div><div class="uq-info"><div class="uq-name">Aditya Rao</div><div class="uq-sym">Routine checkup</div></div><span class="urg-routine">ROUTINE</span><div class="uq-time">11:00 AM</div></div>
+          </div>
+          <div class="wa-card">
+            <div class="wa-head"><div class="wa-av">QT</div><div><div class="wa-nm">QueueTonic Bot</div><div class="wa-sub-text">Clinic notifications</div></div></div>
+            <div class="wa-msgs">
+              <div class="wa-msg in">Dr. Mehta, Priya Sharma has arrived. Triage: High fever 103°F. Marked ACUTE.<div class="wa-time">8:47 AM</div></div>
+              <div class="wa-msg in">Reminder: Rohan Gupta at 9:15 AM. Chest pain reported.<div class="wa-time">8:50 AM</div></div>
+              <div class="wa-msg out">Acknowledged. Move Rohan to 9:00, Priya to 9:20.<div class="wa-time">8:52 AM</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-card-head"><span class="table-card-title">Today's Appointments</span></div>
+          <table><thead><tr><th>Patient</th><th>Time</th><th>Type</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Priya Sharma</strong></td><td>9:00 AM</td><td>Fever — Acute</td><td><span class="pill pill-red">Urgent</span></td></tr>
+            <tr><td>Rohan Gupta</td><td>9:15 AM</td><td>Chest pain</td><td><span class="pill pill-red">Urgent</span></td></tr>
+            <tr><td>Meera Nair</td><td>10:00 AM</td><td>Post-surgery</td><td><span class="pill pill-green">Confirmed</span></td></tr>
+            <tr><td>Aditya Rao</td><td>11:00 AM</td><td>Routine</td><td><span class="pill pill-green">Confirmed</span></td></tr>
+            <tr><td>— Private —</td><td>12:00 PM</td><td>Sensitive</td><td><span class="pill" style="background:#f0eef8;color:#7a72d8">Private</span></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <!-- SCHEDULE -->
+      <div class="panel" id="doc-panel-schedule">
+        <div class="greeting"><h2>Today's <i>Schedule</i></h2><p>Thursday, 12 March 2026</p></div>
+        <div class="schedule-card">
+          <div class="table-card-head"><span class="table-card-title">Time Blocks</span><button class="btn btn-secondary btn-xs">+ Add Slot</button></div>
+          <div class="sched-grid">
+            <div><div class="time-slot">9:00</div><div class="time-slot">9:30</div><div class="time-slot">10:00</div><div class="time-slot">10:30</div><div class="time-slot">11:00</div><div class="time-slot">11:30</div><div class="time-slot">12:00</div><div class="time-slot">12:30</div></div>
+            <div>
+              <div class="appt-slot"><div class="appt-block urgent">Priya Sharma · Fever 103°F · ACUTE</div></div>
+              <div class="appt-slot"><div class="appt-block confirmed">Rohan Gupta · Chest pain follow-up</div></div>
+              <div class="appt-slot"><div class="appt-block confirmed">Meera Nair · Post-surgery review</div></div>
+              <div class="appt-slot"></div>
+              <div class="appt-slot"><div class="appt-block confirmed">Aditya Rao · Routine checkup</div></div>
+              <div class="appt-slot"></div>
+              <div class="appt-slot"><div class="appt-block private">Private Consultation</div></div>
+              <div class="appt-slot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- URGENCY -->
+      <div class="panel" id="doc-panel-urgency">
+        <div class="greeting"><h2>Urgency <i>Triage Engine</i></h2><p>AI-sorted by symptom severity · Auto-updates on new bookings</p></div>
+        <div class="urgency-card">
+          <div class="urgency-title">Live Queue — Sorted by Urgency</div>
+          <div class="uq-item"><div class="uq-rank">1</div><div class="uq-info"><div class="uq-name">Priya Sharma</div><div class="uq-sym">High fever 103°F, chills, body ache — arrived 8:40 AM · Est. 20 min</div></div><span class="urg-acute">ACUTE</span><div class="uq-time">9:00 AM</div></div>
+          <div class="uq-item"><div class="uq-rank">2</div><div class="uq-info"><div class="uq-name">Rohan Gupta</div><div class="uq-sym">Chest pain, shortness of breath · Est. 15 min</div></div><span class="urg-urgent">URGENT</span><div class="uq-time">9:20 AM</div></div>
+          <div class="uq-item"><div class="uq-rank">3</div><div class="uq-info"><div class="uq-name">Meera Nair</div><div class="uq-sym">Post-surgery review, suture check · Est. 25 min</div></div><span class="urg-medium">MEDIUM</span><div class="uq-time">10:00 AM</div></div>
+          <div class="uq-item"><div class="uq-rank">4</div><div class="uq-info"><div class="uq-name">Aditya Rao</div><div class="uq-sym">Annual physical, no complaints · Est. 30 min</div></div><span class="urg-routine">ROUTINE</span><div class="uq-time">11:00 AM</div></div>
+          <div class="uq-item"><div class="uq-rank">5</div><div class="uq-info"><div class="uq-name">Kavya Singh</div><div class="uq-sym">Prescription renewal, stable · Est. 10 min</div></div><span class="urg-routine">ROUTINE</span><div class="uq-time">11:45 AM</div></div>
+        </div>
+      </div>
+
+      <!-- PATIENT HISTORY -->
+      <div class="panel" id="doc-panel-history">
+        <div class="greeting"><h2>Patient <i>History</i></h2><p>Full longitudinal records — doctor access only</p></div>
+        <div class="table-card">
+          <div class="table-card-head"><span class="table-card-title">Priya Sharma</span><span style="font-size:.75rem;color:var(--gray-400)">DOB: 14 Jul 1992 · Blood: O+</span></div>
+          <div style="padding:0 22px">
+            <div class="history-item"><div class="hist-date">12 Mar 2026</div><div class="hist-dot"></div><div><div class="hist-title">Acute fever · Triage: ACUTE</div><div class="hist-text">103°F, chills, body ache. Paracetamol 500mg prescribed. CBC ordered.</div></div></div>
+            <div class="history-item"><div class="hist-date">5 Jan 2026</div><div class="hist-dot"></div><div><div class="hist-title">Follow-up · Post-infection</div><div class="hist-text">Recovery confirmed. CBC normal. No further medication.</div></div></div>
+            <div class="history-item"><div class="hist-date">18 Nov 2025</div><div class="hist-dot"></div><div><div class="hist-title">Upper respiratory infection</div><div class="hist-text">Azithromycin 5-day course prescribed.</div></div></div>
+            <div class="history-item"><div class="hist-date">3 Aug 2025</div><div class="hist-dot"></div><div><div class="hist-title">Annual physical</div><div class="hist-text">All markers normal. BP 118/76. Weight 58kg. Cleared.</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRIVATE SLOTS -->
+      <div class="panel" id="doc-panel-private">
+        <div class="greeting"><h2>Private <i>Slots</i></h2><p>Visible only to you — receptionists see "Unavailable"</p></div>
+        <div class="priv-card"><div class="priv-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div><div><div class="priv-title">End-to-end confidential</div><div class="priv-text">Patient details in private slots are encrypted and only accessible via your credentials.</div></div></div>
+        <div class="table-card">
+          <div class="table-card-head"><span class="table-card-title">Active Private Slots</span><button class="btn btn-secondary btn-xs">+ New Private Slot</button></div>
+          <table><thead><tr><th>Slot Time</th><th>Patient ID</th><th>Category</th><th>Duration</th></tr></thead>
+          <tbody><tr><td>12:00 PM</td><td>#PT-4821 ••••</td><td><span class="pill" style="background:#f0eef8;color:#7a72d8">Sensitive</span></td><td>30 min</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div class="panel" id="doc-panel-map">
+        <div class="greeting"><h2>Clinic <i>Map</i></h2><p>Live room status · Predictive wait times</p></div>
+        <div class="map-card">
+          <div class="map-title">Floor Plan <span class="live-badge"><span class="live-dot"></span>Live</span></div>
+          <div class="room-grid">
+            <div class="room occ"><div class="room-num">01</div><div class="room-status">Occupied</div><div class="room-time">~18 min</div></div>
+            <div class="room avail"><div class="room-num">02</div><div class="room-status">Available</div><div class="room-time">Ready</div></div>
+            <div class="room priv"><div class="room-num">03</div><div class="room-status">Private</div><div class="room-time">12:00 PM</div></div>
+            <div class="room avail"><div class="room-num">04</div><div class="room-status">Available</div><div class="room-time">Ready</div></div>
+            <div class="room occ"><div class="room-num">05</div><div class="room-status">Occupied</div><div class="room-time">~5 min</div></div>
+            <div class="room avail"><div class="room-num">06</div><div class="room-status">Available</div><div class="room-time">Ready</div></div>
+            <div class="room avail"><div class="room-num">Lab</div><div class="room-status">Available</div><div class="room-time">Walk-in</div></div>
+            <div class="room occ"><div class="room-num">Rx</div><div class="room-status">Occupied</div><div class="room-time">~2 min</div></div>
+          </div>
+          <div class="map-legend">
+            <div class="ml-item"><div class="ml-dot" style="background:#c0392b"></div>Occupied</div>
+            <div class="ml-item"><div class="ml-dot" style="background:var(--doc-color)"></div>Available</div>
+            <div class="ml-item"><div class="ml-dot" style="background:#7a72d8"></div>Private</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="panel" id="doc-panel-notifications">
+        <div class="greeting"><h2>Notifications</h2></div>
+        <div class="notif-list">
+          <div class="notif-item"><div class="notif-icon" style="background:#fdecea"><svg viewBox="0 0 24 24" stroke="#c0392b" stroke-width="1.8" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div><div class="notif-title">ACUTE case arrived — Priya Sharma</div><div class="notif-text">Fever 103°F, chills. Auto-promoted to 9:00 AM slot.</div><div class="notif-time">8:47 AM</div></div></div>
+          <div class="notif-item"><div class="notif-icon" style="background:var(--doc-bg)"><svg viewBox="0 0 24 24" stroke="var(--doc-color)" stroke-width="1.8" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="notif-title">Smart Gap activated</div><div class="notif-text">Cancelled slot at 3:00 PM auto-offered to Ravi Kumar via WhatsApp.</div><div class="notif-time">7:30 AM</div></div></div>
+          <div class="notif-item"><div class="notif-icon" style="background:var(--gray-100)"><svg viewBox="0 0 24 24" stroke="var(--gray-600)" stroke-width="1.8" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg></div><div><div class="notif-title">4 reminders dispatched</div><div class="notif-text">WhatsApp confirmations sent to today's patients.</div><div class="notif-time">7:00 AM</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     RECEPTIONIST DASHBOARD
+══════════════════════════════════════════ -->
+<div id="page-receptionist" class="dashboard-page">
+  <div class="sidebar" id="sb-receptionist">
+    <div class="sb-header">
+      <span class="sb-logo">QueueTonic</span>
+      <button class="sb-toggle" onclick="toggleSB('receptionist')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    </div>
+    <div class="sb-role">
+      <div class="sb-role-pill">
+        <div class="role-av rec">RC</div>
+        <div class="sb-role-info"><div class="sb-role-name">Sneha Patil</div><div class="sb-role-type">Receptionist</div></div>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-section">Overview</div>
+      <a class="nav-item rec-nav active" onclick="showPanel('receptionist','overview');return false" href="#"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">Dashboard</span></a>
+      <a class="nav-item rec-nav" onclick="showPanel('receptionist','queue');return false" href="#"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="nav-label">Patient Queue</span><span class="nav-badge blue">8</span></a>
+      <div class="sb-section">Tools</div>
+      <a class="nav-item rec-nav" onclick="showPanel('receptionist','smartgap');return false" href="#"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg><span class="nav-label">Smart Gap</span><span class="nav-badge blue">1</span></a>
+      <a class="nav-item rec-nav" onclick="showPanel('receptionist','reschedule');return false" href="#"><svg viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg><span class="nav-label">One-Tap Reschedule</span></a>
+      <a class="nav-item rec-nav" onclick="showPanel('receptionist','whatsapp');return false" href="#"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span class="nav-label">WhatsApp Bot</span></a>
+      <a class="nav-item rec-nav" onclick="showPanel('receptionist','emergency');return false" href="#"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span class="nav-label">Emergency Override</span></a>
+      <div class="sb-section">Clinic</div>
+      <a class="nav-item rec-nav" onclick="showPanel('receptionist','map');return false" href="#"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg><span class="nav-label">Clinic Map</span></a>
+      <a class="nav-item rec-nav" onclick="showPanel('receptionist','notifications');return false" href="#"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span class="nav-label">Notifications</span><span class="nav-badge blue">4</span></a>
+    </nav>
+    <div class="sb-footer">
+      <button class="theme-btn" onclick="toggleTheme()"><svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
+      <div class="sb-exit" onclick="showPage('home')"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="sb-exit-label">Exit Portal</span></div>
+    </div>
+  </div>
+  <div class="main-wrap">
+    <div class="topbar">
+      <span class="topbar-title" id="rec-topbar-title">Dashboard</span>
+      <div class="topbar-right">
+        <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input placeholder="Search queue…"/></div>
+        <button class="notif-btn"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg><div class="notif-dot"></div></button>
+        <button class="theme-btn" onclick="toggleTheme()"><svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
+      </div>
+    </div>
+    <div class="content-area">
+
+      <div class="panel active" id="rec-panel-overview">
+        <div class="greeting"><h2>Good morning, <i>Sneha.</i></h2><p>8 appointments today · 1 cancellation · Smart Gap active</p></div>
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-icon"><svg viewBox="0 0 24 24" stroke-width="1.8" fill="none" stroke="var(--gray-600)" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="kpi-label">In Queue</div><div class="kpi-value">7</div><div class="kpi-delta">1 waiting at reception</div></div>
+          <div class="kpi-card"><div class="kpi-icon" style="background:var(--doc-bg)"><svg viewBox="0 0 24 24" stroke-width="1.8" fill="none" stroke="var(--doc-color)" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div class="kpi-label">Smart Gap</div><div class="kpi-value">1</div><div class="kpi-delta" style="color:var(--doc-color)">Slot auto-offered</div></div>
+          <div class="kpi-card"><div class="kpi-icon"><svg viewBox="0 0 24 24" stroke-width="1.8" fill="none" stroke="var(--gray-600)" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10"/></svg></div><div class="kpi-label">Rescheduled</div><div class="kpi-value">2</div><div class="kpi-delta">Today</div></div>
+          <div class="kpi-card"><div class="kpi-icon"><svg viewBox="0 0 24 24" stroke-width="1.8" fill="none" stroke="var(--gray-600)" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div class="kpi-label">WA Messages</div><div class="kpi-value">14</div><div class="kpi-delta">Sent today</div></div>
+        </div>
+        <div class="two-col">
+          <div class="table-card">
+            <div class="table-card-head"><span class="table-card-title">Queue — No Medical Data</span></div>
+            <table><thead><tr><th>Patient</th><th>Slot</th><th>Urgency</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td>Priya Sharma</td><td>9:00 AM</td><td><span class="pill pill-red">Acute</span></td><td><button class="btn btn-secondary btn-xs">Reschedule</button></td></tr>
+              <tr><td>Rohan Gupta</td><td>9:15 AM</td><td><span class="pill pill-red">Urgent</span></td><td><button class="btn btn-secondary btn-xs">Reschedule</button></td></tr>
+              <tr><td>Meera Nair</td><td>10:00 AM</td><td><span class="pill pill-blue">Medium</span></td><td><button class="btn btn-secondary btn-xs">Reschedule</button></td></tr>
+              <tr><td>Aditya Rao</td><td>11:00 AM</td><td><span class="pill pill-green">Routine</span></td><td><button class="btn btn-secondary btn-xs">Reschedule</button></td></tr>
+              <tr><td>— Unavailable —</td><td>12:00 PM</td><td>—</td><td>—</td></tr>
+            </tbody></table>
+          </div>
+          <div>
+            <div class="gap-card">
+              <div class="gap-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+              <div><div class="gap-title">Smart Gap Active — 3:00 PM</div><div class="gap-text">Kavita Joshi cancelled. Ravi Kumar (waitlist #1) sent a WhatsApp offer.</div><div class="gap-actions"><button class="btn btn-primary btn-xs" onclick="alert('Slot confirmed for Ravi Kumar!')">Confirm Fill</button><button class="btn btn-secondary btn-xs">See Others</button></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="rec-panel-queue">
+        <div class="greeting"><h2>Patient <i>Queue</i></h2><p>Scheduling view only — no medical records displayed</p></div>
+        <div class="table-card">
+          <div class="table-card-head"><span class="table-card-title">Today's Full Queue</span><button class="btn btn-primary btn-xs">+ New Booking</button></div>
+          <table><thead><tr><th>#</th><th>Patient</th><th>Slot</th><th>Urgency</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Priya Sharma</td><td>9:00 AM</td><td><span class="pill pill-red">Acute</span></td><td><span class="pill pill-red">Urgent</span></td><td><button class="btn btn-secondary btn-xs">Edit</button></td></tr>
+            <tr><td>2</td><td>Rohan Gupta</td><td>9:15 AM</td><td><span class="pill pill-red">Urgent</span></td><td><span class="pill pill-red">Urgent</span></td><td><button class="btn btn-secondary btn-xs">Edit</button></td></tr>
+            <tr><td>3</td><td>Meera Nair</td><td>10:00 AM</td><td><span class="pill pill-blue">Medium</span></td><td><span class="pill pill-green">Confirmed</span></td><td><button class="btn btn-secondary btn-xs">Edit</button></td></tr>
+            <tr><td>4</td><td>Aditya Rao</td><td>11:00 AM</td><td><span class="pill pill-green">Routine</span></td><td><span class="pill pill-green">Confirmed</span></td><td><button class="btn btn-secondary btn-xs">Edit</button></td></tr>
+            <tr><td>5</td><td>— Blocked —</td><td>12:00 PM</td><td>—</td><td><span class="pill pill-gray">Blocked</span></td><td>—</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div class="panel" id="rec-panel-smartgap">
+        <div class="greeting"><h2>Smart <i>Gap Filling</i></h2><p>Auto-detect open slots and offer to waiting patients</p></div>
+        <div class="gap-card"><div class="gap-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div><div class="gap-title">3:00 PM slot freed — Kavita Joshi cancelled</div><div class="gap-text">WhatsApp sent to Ravi Kumar (waitlist #1). Awaiting confirmation.</div><div class="gap-actions"><button class="btn btn-primary btn-xs" onclick="alert('Confirmed!')">Confirm Fill</button><button class="btn btn-secondary btn-xs">Offer to Next</button><button class="btn btn-secondary btn-xs">Leave Open</button></div></div></div>
+        <div class="table-card">
+          <div class="table-card-head"><span class="table-card-title">Waitlist — Auto-Offer Queue</span></div>
+          <table><thead><tr><th>Position</th><th>Patient</th><th>Contact</th><th>Notified</th><th>Response</th></tr></thead>
+          <tbody>
+            <tr><td>#1</td><td>Ravi Kumar</td><td>+91 98xxx xxxx</td><td><span class="pill pill-green">WA Sent</span></td><td><span class="pill pill-orange">Pending</span></td></tr>
+            <tr><td>#2</td><td>Ananya Desai</td><td>+91 87xxx xxxx</td><td><span class="pill pill-gray">Not yet</span></td><td>—</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div class="panel" id="rec-panel-reschedule">
+        <div class="greeting"><h2>One-Tap <i>Reschedule</i></h2><p>Cascade all patients when a consultation runs long</p></div>
+        <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:24px;margin-bottom:18px">
+          <div style="font-family:var(--serif);font-size:1.05rem;margin-bottom:12px;color:var(--black)">Current Overrun Alert</div>
+          <p style="font-size:.82rem;color:var(--gray-600);margin-bottom:18px;line-height:1.65">Priya Sharma's consultation has run 12 minutes over. 3 patients affected. Cascade reschedule all by +15 min?</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="alert('Patients rescheduled and notified via WhatsApp!')">Cascade +15 min (Notify All)</button>
+            <button class="btn btn-secondary btn-sm">Custom Delay</button>
+            <button class="btn btn-secondary btn-sm">Skip Patient</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-card-head"><span class="table-card-title">Affected Patients</span></div>
+          <table><thead><tr><th>Patient</th><th>Original</th><th>New Slot</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Rohan Gupta</td><td>9:15 AM</td><td>9:30 AM</td><td><span class="pill pill-orange">Pending</span></td></tr>
+            <tr><td>Meera Nair</td><td>10:00 AM</td><td>10:15 AM</td><td><span class="pill pill-orange">Pending</span></td></tr>
+            <tr><td>Aditya Rao</td><td>11:00 AM</td><td>11:15 AM</td><td><span class="pill pill-orange">Pending</span></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div class="panel" id="rec-panel-whatsapp">
+        <div class="greeting"><h2>WhatsApp <i>Bot</i></h2><p>Conversational booking, reminders &amp; notifications</p></div>
+        <div class="two-col">
+          <div class="wa-card">
+            <div class="wa-head"><div class="wa-av">QT</div><div><div class="wa-nm">QueueTonic Bot</div><div class="wa-sub-text">Patient: Priya Sharma</div></div></div>
+            <div class="wa-msgs">
+              <div class="wa-msg in">Hi! I'd like to book with Dr. Mehta.<div class="wa-time">8:12 AM</div></div>
+              <div class="wa-msg out">Hello! What are your symptoms?<div class="wa-time">8:12 AM</div></div>
+              <div class="wa-msg in">Fever and chills since last night.<div class="wa-time">8:13 AM</div></div>
+              <div class="wa-msg out">Urgency: ACUTE. Booking you for 9:00 AM today. Confirm?<div class="wa-time">8:13 AM</div></div>
+              <div class="wa-msg in">Yes please!<div class="wa-time">8:14 AM</div></div>
+              <div class="wa-msg out">✓ Booked. 9:00 AM, Dr. Mehta, Room 01. Reminder at 8:45 AM.<div class="wa-time">8:14 AM</div></div>
+            </div>
+            <div class="wa-input-row"><input placeholder="Type…"/><button class="wa-send-btn">Send</button></div>
+          </div>
+          <div class="table-card">
+            <div class="table-card-head"><span class="table-card-title">Bot Activity Today</span></div>
+            <table><thead><tr><th>Action</th><th>Count</th></tr></thead>
+            <tbody>
+              <tr><td>Bookings via bot</td><td>3</td></tr>
+              <tr><td>Reminders sent</td><td>8</td></tr>
+              <tr><td>Cancellations processed</td><td>1</td></tr>
+              <tr><td>Smart Gap offers</td><td>1</td></tr>
+              <tr><td>Reschedule confirmations</td><td>2</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="rec-panel-emergency">
+        <div class="greeting"><h2>Emergency <i>Override</i></h2><p>Insert urgent walk-in ahead of queue — full audit trail</p></div>
+        <div class="emergency-card"><div class="emergency-title">⚠ Emergency Override Mode</div><div class="emergency-text">Use only for critical walk-in emergencies. This action is logged and requires a reason code.</div><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-sm" style="background:#c0392b;color:#fff;border-color:#c0392b;border-radius:var(--radius)" onclick="alert('Emergency slot inserted. Patients notified via WhatsApp.')">Insert Emergency Slot</button><button class="btn btn-secondary btn-sm">Cancel</button></div></div>
+        <div class="table-card">
+          <div class="table-card-head"><span class="table-card-title">Override Audit Log</span></div>
+          <table><thead><tr><th>Time</th><th>By</th><th>Reason</th><th>Affected</th></tr></thead>
+          <tbody>
+            <tr><td>Yesterday 11:32 AM</td><td>Sneha Patil</td><td>Cardiac emergency</td><td>4 patients</td></tr>
+            <tr><td>2 days ago 3:10 PM</td><td>Sneha Patil</td><td>Severe allergy</td><td>2 patients</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div class="panel" id="rec-panel-map">
+        <div class="greeting"><h2>Clinic <i>Map</i></h2><p>Live room status — private rooms shown as Unavailable</p></div>
+        <div class="map-card">
+          <div class="map-title">Floor Plan <span class="live-badge"><span class="live-dot"></span>Live</span></div>
+          <div class="room-grid">
+            <div class="room occ"><div class="room-num">01</div><div class="room-status">Occupied</div><div class="room-time">~18 min</div></div>
+            <div class="room avail"><div class="room-num">02</div><div class="room-status">Available</div><div class="room-time">Ready</div></div>
+            <div class="room" style="border-color:var(--gray-200)"><div class="room-num" style="color:var(--gray-400)">03</div><div class="room-status" style="color:var(--gray-400)">Unavailable</div><div class="room-time">12:00 PM</div></div>
+            <div class="room avail"><div class="room-num">04</div><div class="room-status">Available</div></div>
+            <div class="room occ"><div class="room-num">05</div><div class="room-status">Occupied</div><div class="room-time">~5 min</div></div>
+            <div class="room avail"><div class="room-num">06</div><div class="room-status">Available</div></div>
+            <div class="room avail"><div class="room-num">Lab</div><div class="room-status">Available</div></div>
+            <div class="room occ"><div class="room-num">Rx</div><div class="room-status">Occupied</div><div class="room-time">~2 min</div></div>
+          </div>
+          <div class="map-legend">
+            <div class="ml-item"><div class="ml-dot" style="background:#c0392b"></div>Occupied</div>
+            <div class="ml-item"><div class="ml-dot" style="background:var(--doc-color)"></div>Available</div>
+            <div class="ml-item"><div class="ml-dot" style="background:var(--gray-200)"></div>Unavailable</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="rec-panel-notifications">
+        <div class="greeting"><h2>Notifications</h2></div>
+        <div class="notif-list">
+          <div class="notif-item"><div class="notif-icon" style="background:#fdecea"><svg viewBox="0 0 24 24" stroke="#c0392b" stroke-width="1.8" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div><div class="notif-title">Urgent walk-in — Priya Sharma</div><div class="notif-text">Fever 103°F. Auto-triaged ACUTE. Assigned 9:00 AM.</div><div class="notif-time">8:47 AM</div></div></div>
+          <div class="notif-item"><div class="notif-icon" style="background:var(--doc-bg)"><svg viewBox="0 0 24 24" stroke="var(--doc-color)" stroke-width="1.8" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><div><div class="notif-title">Smart Gap triggered — 3:00 PM freed</div><div class="notif-text">Kavita Joshi cancelled. Ravi Kumar offered the slot.</div><div class="notif-time">7:58 AM</div></div></div>
+          <div class="notif-item"><div class="notif-icon" style="background:var(--gray-100)"><svg viewBox="0 0 24 24" stroke="var(--gray-600)" stroke-width="1.8" fill="none"><path d="M1 4v6h6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg></div><div><div class="notif-title">Doctor shift change — Tomorrow PM</div><div class="notif-text">Dr. Mehta unavailable. 3 patients auto-migrated to Dr. Kapoor.</div><div class="notif-time">6:30 AM</div></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PATIENT DASHBOARD
+══════════════════════════════════════════ -->
+<div id="page-patient" class="dashboard-page">
+  <div class="sidebar" id="sb-patient">
+    <div class="sb-header">
+      <span class="sb-logo">QueueTonic</span>
+      <button class="sb-toggle" onclick="toggleSB('patient')"><svg viewBox="0 0 24 24" fill="none" stroke="var(--gray-600)" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    </div>
+    <div class="sb-role">
+      <div class="sb-role-pill">
+        <div class="role-av pat">PS</div>
+        <div class="sb-role-info"><div class="sb-role-name">Priya Sharma</div><div class="sb-role-type">Patient</div></div>
+      </div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-section">My Health</div>
+      <a class="nav-item pat-nav active" onclick="showPanel('patient','overview');return false" href="#"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label">My Dashboard</span></a>
+      <a class="nav-item pat-nav" onclick="showPanel('patient','appointments');return false" href="#"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="nav-label">My Appointments</span></a>
+      <a class="nav-item pat-nav" onclick="showPanel('patient','book');return false" href="#"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span class="nav-label">Book Appointment</span></a>
+      <a class="nav-item pat-nav" onclick="showPanel('patient','history');return false" href="#"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="nav-label">Health History</span></a>
+      <div class="sb-section">Preferences</div>
+      <a class="nav-item pat-nav" onclick="showPanel('patient','private');return false" href="#"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span class="nav-label">Private Booking</span></a>
+      <a class="nav-item pat-nav" onclick="showPanel('patient','map');return false" href="#"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg><span class="nav-label">Find My Room</span></a>
+      <a class="nav-item pat-nav" onclick="showPanel('patient','notifications');return false" href="#"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span class="nav-label">Notifications</span><span class="nav-badge" style="background:var(--pat-color)">2</span></a>
+    </nav>
+    <div class="sb-footer">
+      <button class="theme-btn" onclick="toggleTheme()"><svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
+      <div class="sb-exit" onclick="showPage('home')"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="sb-exit-label">Exit Portal</span></div>
+    </div>
+  </div>
+  <div class="main-wrap">
+    <div class="topbar">
+      <span class="topbar-title" id="pat-topbar-title">My Dashboard</span>
+      <div class="topbar-right">
+        <button class="notif-btn"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg><div class="notif-dot"></div></button>
+        <button class="theme-btn" onclick="toggleTheme()"><svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
+      </div>
+    </div>
+    <div class="content-area">
+
+      <div class="panel active" id="pat-panel-overview">
+        <div class="greeting"><h2>Welcome back, <i>Priya.</i></h2><p>You have an appointment today at 9:00 AM — Room 01</p></div>
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="kpi-card"><div class="kpi-icon" style="background:var(--doc-bg)"><svg viewBox="0 0 24 24" stroke-width="1.8" fill="none" stroke="var(--doc-color)" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div><div class="kpi-label">Next Appointment</div><div class="kpi-value" style="font-size:1.5rem">Today</div><div class="kpi-delta">9:00 AM · Dr. Mehta</div></div>
+          <div class="kpi-card"><div class="kpi-icon"><svg viewBox="0 0 24 24" stroke-width="1.8" fill="none" stroke="var(--gray-600)" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="kpi-label">Est. Wait</div><div class="kpi-value">~12<span style="font-size:1rem">m</span></div><div class="kpi-delta">You are #1 in queue</div></div>
+          <div class="kpi-card"><div class="kpi-icon"><svg viewBox="0 0 24 24" stroke-width="1.8" fill="none" stroke="var(--gray-600)" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg></div><div class="kpi-label">Past Visits</div><div class="kpi-value">4</div><div class="kpi-delta">Last: 5 Jan 2026</div></div>
+        </div>
+        <div class="two-col">
+          <div style="background:var(--white);border:1.5px solid var(--doc-color);border-radius:var(--radius-lg);padding:22px">
+            <div style="font-size:.7rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--doc-color);margin-bottom:10px">Today's Appointment</div>
+            <div style="font-family:var(--serif);font-size:1.45rem;margin-bottom:4px;color:var(--black)">9:00 AM — Dr. Arjun Mehta</div>
+            <div style="font-size:.82rem;color:var(--gray-600);margin-bottom:18px">Room 01 · General Clinic · Urgent triage</div>
+            <div style="display:flex;gap:8px"><button class="btn btn-secondary btn-xs" onclick="alert('Reschedule request sent!')">Reschedule</button><button class="btn btn-xs" style="background:transparent;color:#c0392b;border:1px solid rgba(192,57,43,.3);border-radius:var(--radius);font-family:var(--sans);font-weight:500;cursor:pointer" onclick="alert('Cancelled. Slot offered to next patient.')">Cancel</button></div>
+          </div>
+          <div class="queue-pos-card">
+            <div style="font-family:var(--serif);font-size:1.05rem;color:var(--black);margin-bottom:12px">Your Queue Position</div>
+            <div style="display:flex;align-items:center;gap:14px">
+              <div class="queue-num">#1</div>
+              <div><div style="font-size:.85rem;font-weight:500;color:var(--black)">You're next</div><div style="font-size:.74rem;color:var(--gray-600);margin-top:3px">Est. 9:00 AM · ~0 min wait</div></div>
+            </div>
+            <div class="progress-bar"><div class="progress-fill"></div></div>
+            <div style="font-size:.7rem;color:var(--gray-400)">Clinic opens in 12 minutes</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="pat-panel-appointments">
+        <div class="greeting"><h2>My <i>Appointments</i></h2></div>
+        <div class="table-card">
+          <div class="table-card-head"><span class="table-card-title">Upcoming &amp; Past</span><button class="btn btn-primary btn-xs" onclick="showPanel('patient','book')">+ Book New</button></div>
+          <table><thead><tr><th>Date &amp; Time</th><th>Doctor</th><th>Type</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Today 9:00 AM</strong></td><td>Dr. Arjun Mehta</td><td>Acute — Fever</td><td><span class="pill pill-red">Urgent</span></td><td><button class="btn btn-secondary btn-xs">Reschedule</button></td></tr>
+            <tr><td>5 Jan 2026</td><td>Dr. Arjun Mehta</td><td>Follow-up</td><td><span class="pill pill-green">Completed</span></td><td>—</td></tr>
+            <tr><td>18 Nov 2025</td><td>Dr. Arjun Mehta</td><td>URI</td><td><span class="pill pill-green">Completed</span></td><td>—</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div class="panel" id="pat-panel-book">
+        <div class="greeting"><h2>Book an <i>Appointment</i></h2></div>
+        <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:28px;max-width:560px">
+          <div class="form-group"><label>Your symptoms</label><textarea class="form-group" style="width:100%;padding:11px 16px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:15px;font-family:var(--sans);color:var(--black);background:var(--white);outline:none;resize:vertical;min-height:80px" placeholder="Describe what you're experiencing…"></textarea></div>
+          <div class="form-group"><label>Preferred date</label><input type="date"/></div>
+          <div class="form-group"><label>Preferred time</label><select><option>9:00 AM</option><option>9:30 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>3:00 PM</option></select></div>
+          <div class="form-group"><label>Consultation type</label><select><option>General</option><option>Private / Sensitive</option><option>Follow-up</option></select></div>
+          <div class="form-group"><label>Notification preference</label><select><option>WhatsApp + SMS</option><option>Email only</option><option>All channels</option></select></div>
+          <button class="form-submit pat" onclick="alert('Request submitted! Urgency assessed — confirmation via WhatsApp shortly.')">Request Appointment</button>
+        </div>
+      </div>
+
+      <div class="panel" id="pat-panel-history">
+        <div class="greeting"><h2>Health <i>History</i></h2><p>Your personal records — private and secure</p></div>
+        <div class="table-card">
+          <div style="padding:0 22px">
+            <div class="history-item"><div class="hist-date">12 Mar 2026</div><div class="hist-dot"></div><div><div class="hist-title">Acute fever — In progress</div><div class="hist-text">103°F, chills. Triage: ACUTE. Appointment 9:00 AM today.</div></div></div>
+            <div class="history-item"><div class="hist-date">5 Jan 2026</div><div class="hist-dot"></div><div><div class="hist-title">Follow-up — Recovery confirmed</div><div class="hist-text">CBC normal. Cleared for routine activity.</div></div></div>
+            <div class="history-item"><div class="hist-date">18 Nov 2025</div><div class="hist-dot"></div><div><div class="hist-title">Upper respiratory infection</div><div class="hist-text">Azithromycin 5-day course. Resolved.</div></div></div>
+            <div class="history-item"><div class="hist-date">3 Aug 2025</div><div class="hist-dot"></div><div><div class="hist-title">Annual physical</div><div class="hist-text">All markers normal. BP 118/76. Weight 58kg.</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="pat-panel-private">
+        <div class="greeting"><h2>Private <i>Booking</i></h2></div>
+        <div class="priv-card"><div class="priv-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div><div><div class="priv-title">Fully confidential</div><div class="priv-text">Private appointments are never disclosed to reception staff. Only you and the doctor can see the details.</div></div></div>
+        <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:28px;max-width:560px;margin-top:16px">
+          <div class="form-group"><label>Reason category</label><select><option>Sensitive / Personal</option><option>Mental health</option><option>Reproductive health</option><option>Other (private)</option></select></div>
+          <div class="form-group"><label>Preferred date</label><input type="date"/></div>
+          <div class="form-group"><label>Preferred time</label><input type="time"/></div>
+          <div class="form-group"><label>Notes (encrypted, doctor-only)</label><textarea style="width:100%;padding:11px 16px;border:1px solid var(--gray-200);border-radius:var(--radius);font-size:15px;font-family:var(--sans);color:var(--black);background:var(--white);outline:none;resize:vertical;min-height:80px" placeholder="End-to-end encrypted…"></textarea></div>
+          <button class="form-submit pat" onclick="alert('Private slot requested. Confirmation via encrypted WhatsApp.')">Request Private Slot</button>
+        </div>
+      </div>
+
+      <div class="panel" id="pat-panel-map">
+        <div class="greeting"><h2>Find <i>My Room</i></h2></div>
+        <div style="background:var(--white);border:1.5px solid var(--doc-color);border-radius:var(--radius-lg);padding:20px;margin-bottom:18px;display:flex;gap:14px;align-items:center">
+          <div style="font-family:var(--serif);font-size:3.5rem;color:var(--doc-color);line-height:1">01</div>
+          <div><div style="font-weight:500;margin-bottom:4px;color:var(--black)">Your room — Room 01</div><div style="font-size:.82rem;color:var(--gray-600)">Ground floor, first left. Estimated wait: 12 minutes. You are #1.</div></div>
+        </div>
+        <div class="map-card">
+          <div class="map-title">Clinic Floor — Your Room Highlighted</div>
+          <div class="room-grid">
+            <div class="room" style="border-color:var(--doc-color);background:var(--doc-bg);box-shadow:0 0 0 2px rgba(26,92,75,.2)"><div class="room-num" style="color:var(--doc-color)">01</div><div class="room-status" style="color:var(--doc-color)">Your Room</div><div class="room-time">9:00 AM</div></div>
+            <div class="room avail"><div class="room-num">02</div><div class="room-status">Available</div></div>
+            <div class="room" style="border-color:var(--gray-200)"><div class="room-num" style="color:var(--gray-400)">03</div><div class="room-status" style="color:var(--gray-400)">Unavailable</div></div>
+            <div class="room avail"><div class="room-num">04</div><div class="room-status">Available</div></div>
+            <div class="room occ"><div class="room-num">05</div><div class="room-status">Occupied</div></div>
+            <div class="room avail"><div class="room-num">06</div><div class="room-status">Available</div></div>
+            <div class="room avail"><div class="room-num">Lab</div><div class="room-status">Available</div></div>
+            <div class="room occ"><div class="room-num">Rx</div><div class="room-status">Occupied</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="pat-panel-notifications">
+        <div class="greeting"><h2>Notifications</h2></div>
+        <div class="notif-list">
+          <div class="notif-item"><div class="notif-icon" style="background:var(--doc-bg)"><svg viewBox="0 0 24 24" stroke="var(--doc-color)" stroke-width="1.8" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="notif-title">Appointment confirmed — 9:00 AM today</div><div class="notif-text">Dr. Mehta · Room 01 · Urgent queue #1</div><div class="notif-time">8:15 AM · WhatsApp + SMS</div></div></div>
+          <div class="notif-item"><div class="notif-icon" style="background:var(--gray-100)"><svg viewBox="0 0 24 24" stroke="var(--gray-600)" stroke-width="1.8" fill="none"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg></div><div><div class="notif-title">Reminder sent — 8:45 AM</div><div class="notif-text">Auto-reminder dispatched via WhatsApp.</div><div class="notif-time">8:00 AM · Scheduled</div></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-doctor">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('doctor')"><svg viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <div class="modal-role-badge" style="color:var(--doc-color)"><div class="modal-role-dot" style="background:var(--doc-color)"></div>Doctor Portal</div>
+    <h3>Welcome back, Doctor.</h3>
+    <p>Sign in to view your schedule, patient history, and upcoming appointments.</p>
+    <div class="demo-note"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--doc-color)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> Demo mode — click Sign In to enter the dashboard</div>
+    <div class="form-group"><label>Medical ID / Email</label><input type="email" placeholder="doctor@clinic.com"/></div>
+    <div class="form-group"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+    <button class="form-submit doc" onclick="goToDashboard('doctor')">Sign In to Doctor Portal</button>
+    <p class="form-footer"><a href="#">Forgot password?</a> &nbsp;·&nbsp; <a href="#">Register account</a></p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-receptionist">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('receptionist')"><svg viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <div class="modal-role-badge" style="color:var(--rec-color)"><div class="modal-role-dot" style="background:var(--rec-color)"></div>Receptionist Portal</div>
+    <h3>Manage the queue.</h3>
+    <p>Access appointment bookings, patient check-ins, and scheduling tools.</p>
+    <div class="demo-note" style="border-color:var(--rec-bg);background:var(--rec-bg);color:var(--rec-color)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--rec-color)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> Demo mode — click Sign In to enter</div>
+    <div class="form-group"><label>Email Address</label><input type="email" placeholder="reception@clinic.com"/></div>
+    <div class="form-group"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+    <button class="form-submit rec" onclick="goToDashboard('receptionist')">Sign In to Reception Portal</button>
+    <p class="form-footer"><a href="#">Forgot password?</a> &nbsp;·&nbsp; <a href="#">Contact admin</a></p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-patient">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('patient')"><svg viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <div class="modal-role-badge" style="color:var(--pat-color)"><div class="modal-role-dot" style="background:var(--pat-color)"></div>Patient Portal</div>
+    <h3>Your health, your schedule.</h3>
+    <p>Book, reschedule, or track appointments with ease.</p>
+    <div class="demo-note" style="border-color:var(--pat-bg);background:var(--pat-bg);color:var(--pat-color)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--pat-color)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> Demo mode — click Continue to enter</div>
+    <div class="form-row">
+      <div class="form-group"><label>First Name</label><input type="text" placeholder="Priya"/></div>
+      <div class="form-group"><label>Last Name</label><input type="text" placeholder="Sharma"/></div>
+    </div>
+    <div class="form-group"><label>Email / Phone</label><input type="text" placeholder="you@email.com or +91 98…"/></div>
+    <div class="form-group"><label>Password</label><input type="password" placeholder="••••••••"/></div>
+    <button class="form-submit pat" onclick="goToDashboard('patient')">Continue to Patient Portal</button>
+    <p class="form-footer">Already have an account? <a href="#">Sign in</a></p>
+  </div>
+</div>
+
+<script>
+/* ── LOADER ── */
+function hideLoader(){document.getElementById('page-loader').classList.add('hide')}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(hideLoader,300))
+}else{setTimeout(hideLoader,300)}
+setTimeout(hideLoader,1200)
+
+/* ── THEME ── */
+function toggleTheme(){
+  const h=document.documentElement
+  const next=h.getAttribute('data-theme')==='dark'?'light':'dark'
+  h.setAttribute('data-theme',next)
+  localStorage.setItem('qt-theme',next)
+}
+const stored=localStorage.getItem('qt-theme')
+if(stored) document.documentElement.setAttribute('data-theme',stored)
+
+/* ── PAGE ROUTING ── */
+function showPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
+  document.querySelectorAll('.dashboard-page').forEach(p=>p.classList.remove('active'))
+  const el=document.getElementById('page-'+page)
+  if(!el) return
+  if(el.classList.contains('dashboard-page')){
+    el.classList.add('active')
+  }else{
+    el.classList.add('active')
+    window.scrollTo(0,0)
+  }
+}
+
+/* ── MODALS ── */
+function openModal(role){
+  document.getElementById('modal-'+role).classList.add('active')
+  document.body.style.overflow='hidden'
+}
+function closeModal(role){
+  document.getElementById('modal-'+role).classList.remove('active')
+  document.body.style.overflow=''
+}
+function goToDashboard(role){
+  closeModal(role)
+  showPage(role)
+}
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',function(e){
+    if(e.target===this){this.classList.remove('active');document.body.style.overflow=''}
+  })
+})
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') document.querySelectorAll('.modal-overlay.active').forEach(m=>{
+    m.classList.remove('active');document.body.style.overflow=''
+  })
+})
+
+/* ── SIDEBAR ── */
+function toggleSB(role){document.getElementById('sb-'+role).classList.toggle('collapsed')}
+
+/* ── PANEL SWITCHING ── */
+const panelTitles={
+  overview:'Dashboard',schedule:"Today's Schedule",urgency:'Urgency Queue',
+  history:'Patient History',private:'Private Slots',map:'Clinic Map',
+  notifications:'Notifications',queue:'Patient Queue',smartgap:'Smart Gap',
+  reschedule:'One-Tap Reschedule',whatsapp:'WhatsApp Bot',emergency:'Emergency Override',
+  appointments:'My Appointments',book:'Book Appointment'
+}
+
+function showPanel(role,panel){
+  // deactivate panels
+  document.querySelectorAll('#page-'+role+' .panel').forEach(p=>p.classList.remove('active'))
+  const t=document.getElementById(role.substring(0,3)+'-panel-'+panel)||
+          document.getElementById(role.replace('receptionist','rec')+'-panel-'+panel)||
+          document.getElementById(role.substring(0,3)+'-panel-'+panel)
+  // map role to prefix
+  const prefix={doctor:'doc',receptionist:'rec',patient:'pat'}[role]
+  const target=document.getElementById(prefix+'-panel-'+panel)
+  if(target) target.classList.add('active')
+  // update topbar
+  const tb=document.getElementById(prefix+'-topbar-title')
+  if(tb) tb.textContent=panelTitles[panel]||panel
+  // update nav
+  document.querySelectorAll('#page-'+role+' .nav-item').forEach(i=>i.classList.remove('active'))
+  document.querySelectorAll('#page-'+role+' .nav-item').forEach(i=>{
+    const oc=i.getAttribute('onclick')||''
+    if(oc.includes("'"+panel+"'")){i.classList.add('active')}
+  })
+}
+
+/* ── SCROLL ANIMATIONS ── */
+const obs=new IntersectionObserver(entries=>entries.forEach(e=>{
+  if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)'}
+}),{threshold:.08})
+document.querySelectorAll('.feature-item,.step,.trust-item').forEach(el=>{
+  el.style.opacity='0';el.style.transform='translateY(14px)'
+  el.style.transition='opacity .55s ease, transform .55s ease'
+  obs.observe(el)
+})
+</script>
+</body>
+</html>
