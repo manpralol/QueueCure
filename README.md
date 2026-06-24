@@ -1,7 +1,5 @@
 # QueueTonic — Appointment Intelligence
 
-**TechBlitz26 · Team SnackOverflow**
-
 ## What is QueueTonic?
 QueueTonic is a role-based clinical appointment scheduling platform that brings intelligence to healthcare queue management. It connects doctors, receptionists, and patients in one unified system — each seeing only what's relevant to their role.
 
